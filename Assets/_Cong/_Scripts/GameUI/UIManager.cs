@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class UIManager : Singleton<UIManager>
 {
     public PanelOption panelOption;
+    public PanelGamePlay panelGP;
     [SerializeField] GameObject panelGamePlay;
     [SerializeField] GameObject panelPauseGame;
     [SerializeField] GameObject panelQuitGame;
@@ -18,16 +19,12 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] CanvasGroup canvasGroupPowerUp;
     [SerializeField] CanvasGroup canvasGroupGameOver;
     [SerializeField] CanvasGroup canvasGroupOptions;
-    [SerializeField] Transform selectedBuff;
+    [SerializeField] UnityEngine.Transform selectedBuff;
     [SerializeField] List<Sprite> buffList = new List<Sprite>();
     [SerializeField] GameObject imageBuff;
     public bool hasPanelBuff;
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            OnEnablePanelPowerUp();
-        }
         if (Input.GetKeyDown(KeyCode.S))
         {
             OnEnablePanelGameOver();
@@ -35,53 +32,53 @@ public class UIManager : Singleton<UIManager>
     }
     public void OnEnablePanelGamePlay()
     {
-        Show(panelGamePlay, canvasGroupGamePlay);
+        Show(panelGamePlay, canvasGroupGamePlay, false);
     }
     public void OnDisablePanelGamePlay()
     {
-        Hide(panelGamePlay, canvasGroupGamePlay);
+        Hide(panelGamePlay, canvasGroupGamePlay, false);
     }
     public void OnEnablePanelPauseGame()
     {
-        Show(panelPauseGame, canvasGroupPauseGame);
+        Show(panelPauseGame, canvasGroupPauseGame, true);
     }
     public void OnDisablePanelPauseGame()
     {
-        Hide(panelPauseGame, canvasGroupPauseGame);
+        Hide(panelPauseGame, canvasGroupPauseGame, true);
     }
     public void OnEnablePanelQuitGame()
     {
-        Show(panelQuitGame, canvasGroupQuitGame);
+        Show(panelQuitGame, canvasGroupQuitGame, false);
     }
     public void OnDisablePanelQuitGame()
     {
-        Hide(panelQuitGame, canvasGroupQuitGame);
+        Hide(panelQuitGame, canvasGroupQuitGame, false);
     }
     public void OnEnablePanelPowerUp()
     {
-        Show(panelPowerUp, canvasGroupPowerUp);
-        hasPanelBuff =true;
+        Show(panelPowerUp, canvasGroupPowerUp, true);
+        hasPanelBuff =true;        
     }
     public void OnDisablePanelPowerUp()
     {
-        Hide(panelPowerUp, canvasGroupPowerUp);
-        hasPanelBuff = false;
+        Hide(panelPowerUp, canvasGroupPowerUp, true);
+        hasPanelBuff = false;        
     }
     public void OnEnablePanelGameOver()
     {
-        Show(panelGameOver, canvasGroupGameOver);
+        Show(panelGameOver, canvasGroupGameOver, true);
     }
     public void OnDisablePanelGameOver()
     {
-        Hide(panelGameOver, canvasGroupGameOver);
+        Hide(panelGameOver, canvasGroupGameOver, true);
     }
     public void OnEnablePanelOptions()
     {
-        Show(panelOptions, canvasGroupOptions);
+        Show(panelOptions, canvasGroupOptions, true);
     }
     public void OnDisablePanelOptions()
     {
-        Hide(panelOptions, canvasGroupOptions);
+        Hide(panelOptions, canvasGroupOptions, true);
     }
     public void AddToBuffList(ConfigPowerUp buff)
     {      
@@ -90,7 +87,7 @@ public class UIManager : Singleton<UIManager>
     }
     public void AddBuffToPausePanel()
     {
-        foreach (Transform buff in selectedBuff)
+        foreach (UnityEngine.Transform buff in selectedBuff)
         {
             Destroy(buff.gameObject);
         }
@@ -105,17 +102,25 @@ public class UIManager : Singleton<UIManager>
     {
         buffList.Clear();
     }
-    public void Show(GameObject panel, CanvasGroup canvasGroup)
+    public void Show(GameObject panel, CanvasGroup canvasGroup, bool pause)
     {
         canvasGroup.alpha= 0;
         panel.SetActive(true);
-        canvasGroup.DOFade(1, 0.5f);
-        
+        canvasGroup.DOFade(1, 0.5f).SetUpdate(UpdateType.Normal, true);
+        if (pause)
+            {
+                GameManager.Instance.SetGameState(GameState.Pause);
+            }        
     }
-    public void Hide(GameObject panel, CanvasGroup canvasGroup)
+    public void Hide(GameObject panel, CanvasGroup canvasGroup, bool resume)
     {
         canvasGroup.DOFade(0, 0.3f)
-            .OnComplete(()=>DisablePanel(panel));        
+            .SetUpdate(UpdateType.Normal, true)
+            .OnComplete(() => DisablePanel(panel));
+        if (resume)
+        {
+            GameManager.Instance.SetGameState(GameState.Running);
+        }
     }
     void DisablePanel(GameObject panel)
     {

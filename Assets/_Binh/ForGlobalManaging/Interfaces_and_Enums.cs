@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 #region Interfaces
@@ -9,12 +10,18 @@ public interface IAttackable
 
 public interface IBeAttackedable
 {
-    void BeAttacked(int damage);
+    void BeAttacked(float damage);
 }
 
 public interface IOnEnemyDie
 {
-    void OnEnemyDie();
+    void OnEnemyDie(float exp);
+}
+
+public interface IRespawnable
+{
+    float respawnDistance { get; }
+    void Respawn();
 }
 
 public interface ITransformGettable
@@ -22,20 +29,64 @@ public interface ITransformGettable
     Transform _transform { get; }
 }
 
-public interface IMapGenerattable
+public interface IMapGeneratable
 {
     void GenerateUnits(Func<Vector3> PivotSetter = null);
 }
 
+public interface IGameData
+{
+    GameData data { get; }
+}
+
+public interface IDataManipulator
+{
+    void SaveData();
+}
+
 public interface IOnGameStates
 {
-    void OnGameStart(params object[] parameter);
-    void OnGameRunning() { }
-    void OnGamePause() { }
-    void OnStageStart() { }
-    void OnStageOver() { }
-    void OnGameOver() { }
+    void OnGameStart<T>(T parameter);
+    void OnGameRunning();
+    void OnGamePause();
+    void OnStageStart();
+    void OnStageOver();
+    void OnGameOver();
 }
+
+public interface IOnGame
+{ }
+
+public interface IOnGameStart<T> : IOnGame
+{
+    Action<T> onGameStartAction { get; }
+}
+
+public interface IOnGamePause : IOnGame
+{
+    Action onGamePauseAction { get; }
+}
+
+public interface IOnGameRunning : IOnGame
+{
+    Action onGameRunningAction { get; }
+}
+
+public interface IOnStageStart : IOnGame
+{
+    Action onStageStartAction { get; }
+}
+
+public interface IOnStageOver : IOnGame
+{
+    Action onStageOverAction { get; }
+}
+
+public interface IOnGameOver : IOnGame
+{
+    Action onGameOverAction { get; }
+}
+
 #endregion
 #region Enums
 public enum GameState

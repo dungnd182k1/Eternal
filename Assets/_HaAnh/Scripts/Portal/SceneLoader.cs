@@ -18,7 +18,7 @@ public class SceneLoader : MonoBehaviour
         Instance = null;
     }
     // Hàm gọi khi bắt đầu chuyển scene
-   public void SetTriggerFadeIn()
+    public void SetTriggerFadeIn()
     {
         fadeAnimator.SetTrigger("FadeIn");
     }
@@ -26,9 +26,9 @@ public class SceneLoader : MonoBehaviour
     {
         fadeAnimator.SetTrigger("FadeOut");
     }
-        // Load scene mới
-        //SceneManager.LoadScene(nextSceneName);
+    // Load scene mới
+    //SceneManager.LoadScene(nextSceneName);
 
-    
+
 
 }

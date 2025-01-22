@@ -3,18 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class EnemyMove : StateMachineBehaviour
+public class EnemyMove : EnemyBehaviourBase
 {
-    Transform player;
     Rigidbody rb;
 
     public float moveSpeed = 5f;
     public float attackDistance = 3f;
 
+    public float maxDistance = 50f; // Khoảng cách tối đa mà quái có thể ở xa người chơi
+
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        rb = animator.GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = animator.GetComponent<Rigidbody>();
+        }
     }
 
     override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
@@ -29,6 +32,13 @@ public class EnemyMove : StateMachineBehaviour
         if (distanceToPlayer < attackDistance)
         {
             animator.SetBool("isAttacking", true);
+        }
+
+        if (distanceToPlayer > maxDistance)
+        {
+            // Dịch chuyển quái về gần người chơi
+            Vector3 teleportPosition = player.position - direction * (maxDistance - 1f); // Dịch chuyển quái về gần người chơi nhưng vẫn giữ khoảng cách an toàn
+            rb.MovePosition(teleportPosition);
         }
     }
 

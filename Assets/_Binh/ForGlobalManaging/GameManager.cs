@@ -2,38 +2,35 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : Singleton<GameManager>, IOnGameStates
+public class GameManager : Singleton<GameManager>, IOnGameOver, IOnGamePause, IOnGameStart<IOnGameStates>, IOnStageOver, IOnStageStart, IOnGameRunning
 {
-    public static GameManager instance;
-
     GameState gameState;
-    List<IOnGameStates> gameElements;
+    IOnGameStates gameRunner;
     [SerializeField]
     Initializer initializer;
-    public DataGamePlay dataGamePlay;
-    public PlayerData playerData;
-    //private void Awake()
-    //{
-    //    if (instance == null)
-    //    {
-    //        instance = this;
-    //    }
-    //    else
-    //    {
-    //        Destroy(gameObject);
-    //    }
-    //}
+    public GameData gameData;
+    public Action onGameOverAction => () => SetGameState(GameState.None);
 
-    //private void OnDisable()
-    //{
-    //    instance = null;
-    //}
+    public Action onGamePauseAction => () =>
+    {
+        Time.timeScale = 0;
+        SetGameState(GameState.None);
+    };
+
+    public Action onStageOverAction => () => SetGameState(GameState.None);
+
+    public Action onStageStartAction => () => SetGameState(GameState.None);
+
+    public Action<IOnGameStates> onGameStartAction => param => gameRunner = param;
+
+    public Action onGameRunningAction => () =>
+    {
+        Time.timeScale = 1;
+        SetGameState(GameState.None);
+    };
 
     private void Start()
     {
-        dataGamePlay.StartDataGamePlay();
-        LoadDataGame();
-        SetPanelOptions();
         initializer.InjectAllAtGameStart();
         SetGameState(GameState.StageStart);
     }
@@ -45,19 +42,19 @@ public class GameManager : Singleton<GameManager>, IOnGameStates
             case GameState.None:
                 return;
             case GameState.Running:
-                Iterate(gameElements, instance => instance.OnGameRunning());
+                gameRunner.OnGameRunning();
                 return;
             case GameState.Pause:
-                Iterate(gameElements, instance => instance.OnGamePause());
+                gameRunner.OnGamePause();
                 return;
             case GameState.GameOver:
-                Iterate(gameElements, instance => instance.OnGameOver());
+                gameRunner.OnGameOver();
                 return;
             case GameState.StageStart:
-                Iterate(gameElements, instance => instance.OnStageStart());
+                gameRunner.OnStageStart();
                 return;
             case GameState.StageOver:
-                Iterate(gameElements, instance => instance.OnStageOver());
+                gameRunner.OnStageOver();
                 return;
         }
     }
@@ -65,50 +62,6 @@ public class GameManager : Singleton<GameManager>, IOnGameStates
     public void SetGameState(GameState state)
     {
         gameState = state;
-        if (Time.timeScale == 0 && gameState == GameState.Running)
-        {
-            Time.timeScale = 1;
-        }
-    }
-
-    void Iterate<T>(List<T> instances, Action<T> Invoke)
-    {
-        //foreach (T instance in instances)
-        //{
-        //    Invoke(instance);
-        //}
-    }
-
-    public void OnGameStart(params object[] parameter)
-    {
-        foreach (object obj in parameter)
-        {
-            if (obj is List<IOnGameStates> param)
-            {
-                gameElements = param;
-            }
-        }
-    }
-
-    public void OnGamePause()
-    {
-        Time.timeScale = 0;
-        SetGameState(GameState.None);
-    }
-
-    public void OnGameOver()
-    {
-        SetGameState(GameState.None);
-    }
-
-    public void OnStageStart()
-    {
-        SetGameState(GameState.Running);
-    }
-
-    public void OnStageOver()
-    {
-        SetGameState(GameState.Running);
     }
 
     public void OnAttack(CharacterBase attacker, CharacterBase damageTaker)
@@ -118,35 +71,8 @@ public class GameManager : Singleton<GameManager>, IOnGameStates
             damageTaker.BeAttacked(attacker._damage);
         }
     }
-    public void LoadDataGame()
+    public void OutGame()
     {
-        playerData = dataGamePlay.LoadData();
-    }
-    public void SaveDataGame()
-    {
-        if (dataGamePlay != null)
-        {
-            dataGamePlay.SaveData(playerData);
-        }
-    }
-    void SetPanelOptions()
-    {
-        if (playerData.hasBGM)
-        {
-            UIManager.Instance.panelOption.OnBGM();
-        }
-        else
-        {
-            UIManager.Instance.panelOption.OffBGM();
-        }
-        if (playerData.hasSFX)
-        {
-            UIManager.Instance.panelOption.OnSFX();
-        }
-        else
-        {
-            UIManager.Instance.panelOption.OffSFX();
-        }
-
+        Application.Quit();
     }
 }

@@ -2,9 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyManager : MonoBehaviour
+public class EnemyManager : MonoBehaviour, IOnGameStart<ITransformGettable>, IOnGameStart<List<IOnEnemyDie>>, IOnEnemyDie, IRespawnable
 {
-    public static EnemyManager Instance {get; set;}
+    List<IOnEnemyDie> dieCalls;
+    ITransformGettable player;
+    System.Action<List<IOnEnemyDie>> IOnGameStart<List<IOnEnemyDie>>.onGameStartAction => enemyDieCalls => dieCalls = enemyDieCalls;
+    System.Action<ITransformGettable> IOnGameStart<ITransformGettable>.onGameStartAction => theTransform =>
+    {
+        player = theTransform;
+    };
+
+    public float respawnDistance => 45f;
+
+    List<GameObject> enemies;
+    GameObject enemyParent;
 
     public int currentRound;
     public int waveInRound;
@@ -14,58 +25,92 @@ public class EnemyManager : MonoBehaviour
     public int enemyAlive;
 
     public GameObject[] enemyPrefabs;
-    public GameObject player;
     public Vector3 spawnPositionAbove;
     public Vector3 spawnPositionBelow;
     public float spawnDistance = 20f;
     public float timeBetweenSpawns = 0.5f;
     public float timeBetweenWaves = 5f;
 
-    private void Awake() {
-        if (Instance != null && Instance != this)
+    void Start()
+    {
+        enemyParent = new GameObject("Enemies");
+        enemyPools = new List<GameObject>[enemyPrefabs.Length];
+        for (int i = 0; i < enemyPools.Length; i++)
         {
-            Destroy(gameObject);
-        } else {
-            Instance = this;
-            player = GameObject.FindGameObjectWithTag("Player");
+            enemyPools[i] = new List<GameObject>();
         }
-    }
-
-    private void Update() {
-        if (enemyAlive == 0)
-        {
-            StartCoroutine(NextWave());
-        }
+        enemies = new List<GameObject>();
+        StartCoroutine(NextWave());
     }
 
     //Hàm spawn enemy ở một khoảng cánh so với player
-    private IEnumerator SpawnEnemiesAbove()
+
+    List<GameObject>[] enemyPools;
+    IEnumerator SpawnEnemies(Vector3 spawnOffsetOnForward)
     {
-        spawnPositionAbove = player.transform.position + new Vector3(0, 0, spawnDistance);
-        
+        Vector3 spawnPosition = player._transform.position + spawnOffsetOnForward;
+
         for (int i = 0; i < enemyInWave; i++)
         {
             Vector3 randomOffset = new Vector3(Random.Range(-spawnDistance / 4, spawnDistance / 4), 0, 0);
-            GameObject enemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-            Instantiate(enemyPrefab, spawnPositionAbove + randomOffset, Quaternion.identity);
+            int randomIndex = Random.Range(0, enemyPrefabs.Length);
+            GameObject enemyPrefab = enemyPrefabs[randomIndex];
+            if (enemyPools[randomIndex].Count == 0)
+            {
+                CreateNewEnemy(enemyPrefab, spawnPosition + randomOffset, randomIndex);
+            }
+            else
+            {
+                bool allActive = false;
+                ReuseFromPool(randomIndex, spawnPosition + randomOffset, ref allActive);
+                if (allActive)
+                {
+                    CreateNewEnemy(enemyPrefab, spawnPosition + randomOffset, randomIndex);
+                }
+            }
             yield return new WaitForSeconds(timeBetweenSpawns);
         }
     }
 
-    private IEnumerator SpawnEnemiesBelow()
+    void CreateNewEnemy(GameObject prefab, Vector3 position, int poolIndex)
     {
-        spawnPositionBelow = player.transform.position - new Vector3(0, 0, spawnDistance);
+        GameObject enemy = Instantiate(prefab, position, Quaternion.identity, enemyParent.transform);
+        enemy.GetComponent<Enemy>().SetDependencies(player, dieCalls);
+        enemyPools[poolIndex].Add(enemy);
+        enemies.Add(enemy);
+    }
 
-        for (int i = 0; i < enemyInWave; i++)
+    void ReuseFromPool(int poolIndex, Vector3 newPosition, ref bool allActive)
+    {
+        for (int i = 0; i < enemyPools[poolIndex].Count; i++)
         {
-            Vector3 randomOffset = new Vector3(Random.Range(-spawnDistance / 4, spawnDistance / 4), 0, 0);
-            GameObject enemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-            Instantiate(enemyPrefab, spawnPositionBelow + randomOffset, Quaternion.identity);
-            yield return new WaitForSeconds(timeBetweenSpawns);
+            if (!enemyPools[poolIndex][i].activeSelf)
+            {
+                enemyPools[poolIndex][i].transform.position = newPosition;
+                enemyPools[poolIndex][i].transform.rotation = Quaternion.identity;
+                enemyPools[poolIndex][i].SetActive(true);
+                enemyPools[poolIndex][i].GetComponent<Enemy>().Revive();
+                enemies.Add(enemyPools[poolIndex][i]);
+                break;
+            }
+            if (i == enemyPools[poolIndex].Count - 1)
+            {
+                allActive = true;
+            }
         }
     }
 
     //Hàm respawn enemy khi enemy quá xa player
+    public void Respawn()
+    {
+        StopAllCoroutines();
+        foreach (GameObject enemy in enemies)
+        {
+            enemy.SetActive(false);
+        }
+        enemies.Clear();
+        StartCoroutine(NextWave());
+    }
 
     //Hàm kiểm tra xem toàn bộ enemy trong wave đã chết hết chưa, nếu hết rồi thì chuyển wave hoặc chuyển round nếu đã là wave cuối
 
@@ -75,9 +120,24 @@ public class EnemyManager : MonoBehaviour
         enemyAlive = enemyInWave * 2;
         yield return new WaitForSeconds(timeBetweenWaves);
         currentWave++;
-        StartCoroutine(SpawnEnemiesAbove());
-        StartCoroutine(SpawnEnemiesBelow());
+        StartCoroutine(SpawnEnemies(new Vector3(0, 0, spawnDistance)));
+        StartCoroutine(SpawnEnemies(-new Vector3(0, 0, spawnDistance)));
+    }
+
+    public void OnEnemyDie(int exp)
+    {
+        enemyAlive--;
+        if (enemyAlive == 0)
+        {
+            StartCoroutine(NextWave());
+        }
+    }
+
+    public void OnEnemyDie(float exp)
+    {
+        throw new System.NotImplementedException();
     }
 
     //Hàm chuyển round
+
 }

@@ -1,30 +1,21 @@
 using UnityEngine;
 
-public class GroundUnit : MonoBehaviour, IOnGameStates
+public class GroundUnit : MonoBehaviour
 {
-    IMapGenerattable mapGenerator;
+    IMapGeneratable mapGenerator;
 
     [SerializeField]
     float offset;
 
     public float _offset { get => offset; }
 
-    public void OnGameStart(params object[] parameter)
+    public void Active(IMapGeneratable generator)
     {
-        foreach (var obj in parameter)
-        {
-            if (obj is IMapGenerattable generator)
-            {
-                mapGenerator = generator;
-                Debug.Log(mapGenerator);
-                return;
-            }
-        }
+        mapGenerator = generator;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        GroundGenerator.instance.GenerateUnits(() => transform.position);
-        //mapGenerator.GenerateUnits(() => transform.position);
+        mapGenerator.GenerateUnits(() => transform.position);
     }
 }

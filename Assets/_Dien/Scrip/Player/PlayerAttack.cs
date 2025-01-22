@@ -1,37 +1,42 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
-public class PlayerAttack : MonoBehaviour
+public class PlayerAttack : MonoBehaviour, IOnGameStart<IRespawnable>
 {
-    [SerializeField] Transform weaponTranform; // Vị trí vũ khí, tâm bám kính tìm kiếm enemy
-    [SerializeField] float detectionRadius = 10f; // Bán kính tìm kiếm
+    [SerializeField] Transform player; // Vị trí player, tâm bám kính tìm kiếm enemy
+    [SerializeField] float detectionRadius = 25f; // Bán kính tìm kiếm
     [SerializeField] float delayTime = 2f; // Khoản cách giữa các lầm tìm kiếm enemy mới
     [SerializeField] GameObject closetEnemy;
     [SerializeField] GameObject virtualEnemy;
 
     [SerializeField] GameObject targerRing;
 
+    IRespawnable respawner;
+    Transform checkPoint;
+
+    public Action<IRespawnable> onGameStartAction => spawner => respawner = spawner;
+
     private void Start()
     {
-        StartCoroutine(FindClosetEnemyFixtest());
+        StartCoroutine(FindClosestEnemyCoroutine());
     }
     void Update()
     {
-         TargetRing();
+        TargetRing();
+        CheckDistanceAndRespawn();
     }
-    IEnumerator FindClosetEnemyFixtest()
+    IEnumerator FindClosestEnemyCoroutine()
     {
         while (true)
         {
-            closetEnemy = FindClosetEnemy();
+            closetEnemy = FindClosestEnemy();
             yield return new WaitForSeconds(delayTime);
         }
     }
-    GameObject FindClosetEnemy()
+    GameObject FindClosestEnemy()
     {
-        Collider[] colliders = Physics.OverlapSphere(weaponTranform.position, detectionRadius);
+        Collider[] colliders = Physics.OverlapSphere(player.position, detectionRadius);
         GameObject closet = null;
         float shortesDistance = Mathf.Infinity;
 
@@ -46,11 +51,12 @@ public class PlayerAttack : MonoBehaviour
             {
                 if (collider.CompareTag("Enemy"))
                 {
-                    float distance = Vector3.Distance(weaponTranform.position, collider.transform.position);
+                    float distance = Vector3.Distance(player.position, collider.transform.position);
                     if (distance < shortesDistance)
                     {
                         shortesDistance = distance;
                         closet = collider.gameObject;
+                        checkPoint = closet.transform;
                     }
                 }
             }
@@ -67,6 +73,20 @@ public class PlayerAttack : MonoBehaviour
         else
         {
             targerRing.transform.position = closetEnemy.transform.position;
+        }
+    }
+
+    void CheckDistanceAndRespawn()
+    {
+        if (checkPoint == null)
+        {
+            return;
+        }
+
+        if (Vector3.Distance(transform.position, checkPoint.position) >= respawner.respawnDistance)
+        {
+            checkPoint = virtualEnemy.transform;
+            respawner.Respawn();
         }
     }
 }
