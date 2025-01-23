@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class EnemyManager : MonoBehaviour, IOnGameStart<ITransformGettable>, IOnGameStart<List<IOnEnemyDie>>, IOnEnemyDie, IRespawnable
 {
+    public static EnemyManager Instance {get; set;}
     List<IOnEnemyDie> dieCalls;
     ITransformGettable player;
     System.Action<List<IOnEnemyDie>> IOnGameStart<List<IOnEnemyDie>>.onGameStartAction => enemyDieCalls => dieCalls = enemyDieCalls;
@@ -30,6 +31,15 @@ public class EnemyManager : MonoBehaviour, IOnGameStart<ITransformGettable>, IOn
     public float spawnDistance = 20f;
     public float timeBetweenSpawns = 0.5f;
     public float timeBetweenWaves = 5f;
+
+    private void Awake() {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        } else {
+            Instance = this;
+        }
+    }
 
     void Start()
     {
@@ -125,18 +135,12 @@ public class EnemyManager : MonoBehaviour, IOnGameStart<ITransformGettable>, IOn
         StartCoroutine(SpawnEnemies(-new Vector3(0, 0, spawnDistance)));
     }
 
-    public void OnEnemyDie(int exp)
+    public void OnEnemyDie(float exp)
     {
-        enemyAlive--;
-        if (enemyAlive == 0)
+        if (enemyAlive <= 0)
         {
             StartCoroutine(NextWave());
         }
-    }
-
-    public void OnEnemyDie(float exp)
-    {
-        throw new System.NotImplementedException();
     }
 
     //Hàm chuyển round

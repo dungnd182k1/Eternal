@@ -13,6 +13,7 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] GameObject panelPowerUp;
     [SerializeField] GameObject panelGameOver;
     [SerializeField] GameObject panelOptions;
+    [SerializeField] PanelLoading panelLoadScene;
     [SerializeField] CanvasGroup canvasGroupGamePlay;
     [SerializeField] CanvasGroup canvasGroupPauseGame;
     [SerializeField] CanvasGroup canvasGroupQuitGame;
@@ -80,6 +81,13 @@ public class UIManager : Singleton<UIManager>
     {
         Hide(panelOptions, canvasGroupOptions, true);
     }
+
+    public void LoadScene(string sceneName)
+    {
+        panelLoadScene.gameObject.SetActive(true);
+        panelLoadScene.SetSceneName(sceneName);
+    }
+
     public void AddToBuffList(ConfigPowerUp buff)
     {      
         buffList.Add(buff.iconBuff);
