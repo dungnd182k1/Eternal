@@ -133,9 +133,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f49bb800cd95d30438ea6e8889b62582, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  HP: 10
-  damage: 10
-  exp: 20
+  HP: 200
+  damage: 15
+  exp: 16
   isDead: 0
 --- !u!65 &5500116430924960924
 BoxCollider:
@@ -325,7 +325,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3991229836408343359}
   - component: {fileID: 1081170524825411761}
-  m_Layer: 7
+  m_Layer: 0
   m_Name: cactus_leftHandTip_atk
   m_TagString: Untagged
   m_Icon: {fileID: 0}
